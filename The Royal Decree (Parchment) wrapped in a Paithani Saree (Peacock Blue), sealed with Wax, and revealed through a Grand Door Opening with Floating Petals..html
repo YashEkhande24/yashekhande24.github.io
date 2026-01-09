@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Utkarsha & Jayesh | Royal Serenity</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Great+Vibes&family=Yatra+One&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- THEME PALETTE --- */
+        :root {
+            --royal-teal: #003333;
+            --deep-emerald: #022222;
+            --antique-gold: #c5a059;
+            --bright-gold: #f4d078;
+            --parchment-cream: #f9f5e8;
+            --ink-black: #2c241b;
+        }
+
+        body {
+            background: radial-gradient(circle at center, var(--royal-teal), var(--deep-emerald));
+            color: var(--ink-black);
+            font-family: 'Cormorant Garamond', serif;
+            margin: 0; padding: 0;
+            overflow: hidden; /* Main body locked, card scrolls */
+            height: 100vh;
+            /* Mobile address bar fix */
+            height: 100dvh; 
+            perspective: 1200px;
+            touch-action: pan-y; /* Allow vertical scroll but handle custom gestures */
+        }
+
+        .font-royal { font-family: 'Cinzel Decorative', serif; }
+        .font-script { font-family: 'Great Vibes', cursive; }
+
+        /* --- 1. CANVAS LAYERS (Background) --- */
+        #petals-canvas {
+            position: fixed; inset: 0; pointer-events: none; z-index: 50;
+        }
+        #bg-pattern {
+            position: fixed; inset: 0; z-index: 0; opacity: 0.1;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4af37' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        /* --- 2. ENTRY GATES --- */
+        #gate-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            display: flex; pointer-events: auto;
+            transition: opacity 1.5s ease;
+        }
+
+        .gate-panel {
+            width: 50%; height: 100%;
+            background: linear-gradient(to bottom, #003333, #001a1a);
+            position: relative;
+            transition: transform 2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-right: 3px solid var(--antique-gold);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
+        }
+
+        .gate-open-left { transform: translateX(-100%); }
+        .gate-open-right { transform: translateX(100%); border-left: 3px solid var(--antique-gold); border-right: none; }
+
+        /* Mandala Spin */
+        .mandala-decor {
+            position: absolute; width: 300px; height: 300px;
+            opacity: 0.1;
+            background-image: url('https://img.icons8.com/ios/100/d4af37/mandala.png'); 
+            background-size: cover;
+            animation: spin-slow 60s linear infinite;
+        }
+        @keyframes spin-slow { 100% { transform: rotate(360deg); } }
+
+        /* --- 3. WAX SEAL --- */
+        .seal-container {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 120;
+            cursor: pointer;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .seal-container:active { transform: translate(-50%, -50%) scale(0.9); }
+        
+        .wax-seal {
+            width: 140px; height: 140px;
+            background: radial-gradient(circle at 30% 30%, #a31e1e, #7a0f0f, #4a0000);
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.4);
+            border: 6px double #600;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.7);
+            position: relative;
+        }
+        /* Ribbon behind seal */
+        .ribbon {
+            position: absolute; top: 100%; left: 50%;
+            width: 40px; height: 60px;
+            background: #7a0f0f;
+            transform: translateX(-50%) skewY(10deg);
+            z-index: -1;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+        }
+        .ribbon::after {
+             content: ""; position: absolute; bottom: -10px; left: 0;
+             border-left: 20px solid transparent;
+             border-right: 20px solid transparent;
+             border-top: 20px solid #7a0f0f;
+        }
+
+        /* --- 4. MAIN SCROLL CARD --- */
+        #scene {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 1s ease 1s;
+        }
+
+        .scroll-card {
+            width: 90%; max-width: 500px;
+            height: 85vh;
+            /* Use dvh for mobile address bar resilience */
+            height: 85dvh; 
+            background-color: var(--parchment-cream);
+            background-image: url("https://www.transparenttextures.com/patterns/cream-paper.png");
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            position: relative;
+            transform-style: preserve-3d;
+            border: 1px solid #e0d0b0;
+            overflow: hidden;
+            transition: transform 0.2s ease-out; /* Smooth tilt */
+        }
+
+        /* Gold Frame around Card */
+        .scroll-card::after {
+            content: ""; position: absolute; inset: 10px;
+            border: 2px solid var(--antique-gold);
+            border-radius: 8px; pointer-events: none; opacity: 0.6;
+            z-index: 10;
+        }
+        
+        /* Corner Flourishes */
+        .corner-img {
+            position: absolute; width: 50px; height: 50px;
+            opacity: 0.8; z-index: 11;
+        }
+
+        /* Content Area */
+        .card-content {
+            height: 100%; overflow-y: auto;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+            scrollbar-width: thin;
+            scrollbar-color: var(--antique-gold) transparent;
+        }
+        .card-content::-webkit-scrollbar { width: 6px; }
+        .card-content::-webkit-scrollbar-thumb { background-color: var(--antique-gold); border-radius: 20px; }
+
+        /* --- 5. IMAGES & GALLERY --- */
+        .image-frame {
+            position: relative;
+            padding: 8px; background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+            transform: rotate(-2deg);
+            transition: transform 0.3s ease;
+        }
+        .image-frame:hover { transform: rotate(0deg) scale(1.02); z-index: 20; }
+        .image-frame img { width: 100%; height: auto; display: block; filter: sepia(10%); }
+
+        /* Gallery Slider */
+        .gallery-container {
+            position: relative;
+            width: 100%; height: 250px;
+            overflow: hidden;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            touch-action: pan-y; /* Allow vertical scroll but capture horizontal swipes */
+        }
+        .gallery-slide {
+            position: absolute; inset: 0;
+            opacity: 0; transition: opacity 0.5s ease;
+            background-size: cover; background-position: center;
+        }
+        .gallery-slide.active { opacity: 1; }
+        
+        .gallery-nav {
+            position: absolute; bottom: 10px; left: 0; right: 0;
+            display: flex; justify-content: center; gap: 8px;
+            z-index: 20;
+        }
+        .dot { width: 8px; height: 8px; background: white; border-radius: 50%; opacity: 0.5; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .dot.active { opacity: 1; transform: scale(1.2); }
+
+        /* --- 6. AUDIO FAB --- */
+        .music-fab {
+            position: fixed; bottom: 20px; right: 20px;
+            width: 44px; height: 44px; /* Mobile touch target size */
+            border-radius: 50%;
+            background: rgba(0, 51, 51, 0.8);
+            border: 1px solid var(--antique-gold);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--antique-gold);
+            cursor: pointer;
+            z-index: 200;
+            box-shadow: 0 0 15px var(--antique-gold);
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .music-fab:active { transform: scale(0.95); }
+        .music-playing { animation: pulse-music 2s infinite; }
+        @keyframes pulse-music { 0% { box-shadow: 0 0 0 0 rgba(197, 160, 89, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(197, 160, 89, 0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
+
+        /* --- UTILS --- */
+        .gold-text { color: #8a6c32; }
+        .divider { width: 100%; height: 1px; background: linear-gradient(to right, transparent, var(--antique-gold), transparent); margin: 2rem 0; opacity: 0.5; }
+        
+        /* Mobile Typography Adjustments */
+        @media (max-width: 640px) {
+            .font-royal { letter-spacing: 0.05em; }
+            h1.font-royal { font-size: 2.5rem; line-height: 1.2; }
+            .card-content { padding: 1.25rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- AUDIO ELEMENT -->
+    <!-- Changed to a more reliable MP3 source for better mobile compatibility -->
+    <audio id="bg-music" loop preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/209/209-preview.mp3" type="audio/mp3">
+    </audio>
+
+    <!-- BACKGROUND LAYERS -->
+    <div id="bg-pattern"></div>
+    <canvas id="petals-canvas"></canvas>
+
+    <!-- ENTRY GATES -->
+    <div id="gate-overlay">
+        <!-- Left Gate -->
+        <div id="gate-left" class="gate-panel gate-left">
+            <div class="mandala-decor" style="left: -100px;"></div>
+            <!-- Corners -->
+            <img src="https://img.icons8.com/ios/100/d4af37/corner-ornament.png" class="absolute top-4 left-4 w-12 opacity-50">
+        </div>
+
+        <!-- Right Gate -->
+        <div id="gate-right" class="gate-panel gate-right">
+            <div class="mandala-decor" style="right: -100px;"></div>
+            <img src="https://img.icons8.com/ios/100/d4af37/corner-ornament.png" class="absolute top-4 right-4 w-12 opacity-50 transform rotate-90">
+        </div>
+
+        <!-- Wax Seal Button -->
+        <div class="seal-container" onclick="openWedding()">
+            <div class="wax-seal">
+                <i class="fas fa-om text-3xl mb-1 opacity-80"></i>
+                <span class="font-royal text-xs tracking-widest uppercase">Open</span>
+            </div>
+            <div class="ribbon"></div>
+        </div>
+    </div>
+
+    <!-- MAIN CARD SCENE -->
+    <div id="scene">
+        <div class="scroll-card" id="card-body">
+            
+            <!-- Ornate Corners Inside Card -->
+            <img src="https://img.icons8.com/ios-glyphs/60/d4af37/ornament.png" class="corner-img top-2 left-2">
+            <img src="https://img.icons8.com/ios-glyphs/60/d4af37/ornament.png" class="corner-img top-2 right-2 transform scale-x-[-1]">
+
+            <div class="card-content p-6 pb-20 text-center relative z-20">
+                
+                <!-- 1. Header -->
+                <div class="mt-8 mb-4 animate-fade-in-up">
+                    <p class="text-[10px] uppercase tracking-[0.3em] gold-text mb-2">The Royal Union Of</p>
+                    <h1 class="font-royal text-3xl md:text-5xl text-[#2c241b] drop-shadow-sm">Utkarsha</h1>
+                    <p class="font-script text-3xl text-[#a31e1e] my-[-5px]">&</p>
+                    <h1 class="font-royal text-3xl md:text-5xl text-[#2c241b] drop-shadow-sm">Jayesh</h1>
+                </div>
+
+                <!-- 2. Couple Photo (Parallax Frame) -->
+                <div class="w-full max-w-xs mx-auto my-8">
+                    <div class="image-frame bg-white p-2">
+                        <img src="https://images.unsplash.com/photo-1623838890947-83787a7d4a27?q=80&w=600&auto=format&fit=crop" alt="Couple">
+                    </div>
+                </div>
+
+                <p class="text-lg italic font-serif px-4 text-gray-700 leading-relaxed">
+                    "Together with our families, we invite you to celebrate our new beginning."
+                </p>
+
+                <div class="divider"></div>
+
+                <!-- 3. The Event Details (UPDATED LIST) -->
+                <div class="mb-10 text-left">
+                    <h2 class="font-royal text-2xl gold-text text-center mb-6">Celebrations</h2>
+
+                    <!-- Mehandi -->
+                    <div class="relative bg-white/50 p-4 rounded-lg border border-[#e0d0b0] shadow-sm mb-4 transform hover:scale-[1.01] transition duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-[#003333] text-[#f4d078] flex items-center justify-center font-royal text-lg shrink-0">
+                                M
+                            </div>
+                            <div>
+                                <h3 class="font-royal text-lg text-[#a31e1e]">Mehandi</h3>
+                                <p class="text-xs font-bold text-gray-600 uppercase tracking-widest">24 Jan | 10:00 AM</p>
+                                <p class="text-sm italic text-gray-600">The Courtyard</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Haldi -->
+                    <div class="relative bg-white/50 p-4 rounded-lg border border-[#e0d0b0] shadow-sm mb-4 transform hover:scale-[1.01] transition duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-[#f4d078] text-[#2c241b] flex items-center justify-center font-royal text-lg shrink-0">
+                                H
+                            </div>
+                            <div>
+                                <h3 class="font-royal text-lg text-[#a31e1e]">Haldi Kumkum</h3>
+                                <p class="text-xs font-bold text-gray-600 uppercase tracking-widest">24 Jan | 4:00 PM</p>
+                                <p class="text-sm italic text-gray-600">Residence Hall</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wedding -->
+                    <div class="relative bg-white/60 p-6 rounded-lg border-2 border-[#a31e1e] shadow-md mb-4 text-center">
+                        <h3 class="font-royal text-2xl text-[#a31e1e] mb-1">Shubh Vivah</h3>
+                        <p class="text-gray-600 font-bold uppercase tracking-widest text-[10px] mb-4">The Wedding Ceremony</p>
+                        
+                        <div class="flex justify-center items-center gap-4 mb-4 text-[#2c241b]">
+                            <div class="text-center border-r border-gray-300 pr-4">
+                                <span class="block text-3xl font-royal">25</span>
+                                <span class="uppercase text-xs">Jan</span>
+                            </div>
+                            <div class="text-left">
+                                <span class="block text-xl">Sunday</span>
+                                <span class="block text-sm opacity-70">12:35 PM</span>
+                            </div>
+                        </div>
+
+                        <!-- Venue Image -->
+                        <div class="rounded overflow-hidden mb-4 shadow-md opacity-90">
+                            <img src="https://images.unsplash.com/photo-1519225421980-715cb0202128?q=80&w=600" class="w-full h-32 object-cover">
+                        </div>
+                        
+                        <p class="text-sm font-semibold mb-4">The Royal Palace, Pune</p>
+                        
+                        <div class="flex gap-2">
+                            <button onclick="window.open('https://maps.google.com'); vibrateDevice();" class="flex-1 bg-[#2c241b] text-[#f4d078] py-3 text-sm font-royal uppercase hover:bg-[#a31e1e] active:scale-95 transition rounded-sm shadow">Map</button>
+                            <button onclick="vibrateDevice();" class="flex-1 border border-[#2c241b] text-[#2c241b] py-3 text-sm font-royal uppercase hover:bg-[#fff] active:scale-95 transition rounded-sm shadow-sm">Calendar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- 4. Our Gallery -->
+                <div class="mb-10">
+                    <h2 class="font-royal text-2xl gold-text mb-4">Our Moments</h2>
+                    
+                    <div class="gallery-container bg-gray-100 shadow-inner" id="gallery-touch-area">
+                        <div class="gallery-slide active" style="background-image: url('https://images.unsplash.com/photo-1621621667797-e06afc217fb0?q=80&w=600');"></div>
+                        <div class="gallery-slide" style="background-image: url('https://images.unsplash.com/photo-1595514658097-407b46146c2d?q=80&w=600');"></div>
+                        <div class="gallery-slide" style="background-image: url('https://images.unsplash.com/photo-1583934555026-6d85ce4f6b2f?q=80&w=600');"></div>
+                        
+                        <!-- Overlay hint -->
+                        <div class="absolute inset-0 flex items-center justify-between px-2 pointer-events-none opacity-50">
+                            <i class="fas fa-chevron-left text-white drop-shadow-md"></i>
+                            <i class="fas fa-chevron-right text-white drop-shadow-md"></i>
+                        </div>
+
+                        <!-- Dots -->
+                        <div class="gallery-nav">
+                            <div class="dot active" onclick="setSlide(0)"></div>
+                            <div class="dot" onclick="setSlide(1)"></div>
+                            <div class="dot" onclick="setSlide(2)"></div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500">Swipe to see more</p>
+                </div>
+
+                <!-- Footer -->
+                <div class="opacity-60 pb-4">
+                    <img src="https://img.icons8.com/ios/50/d4af37/peacock.png" class="w-10 mx-auto mb-2">
+                    <p class="font-script text-xl">The Family</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MUSIC CONTROLS -->
+    <div class="music-fab" id="music-btn" onclick="toggleMusic(); vibrateDevice();">
+        <i class="fas fa-music"></i>
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        /* =========================================
+           0. UTILS: HAPTICS
+           ========================================= */
+        function vibrateDevice() {
+            if (navigator.vibrate) {
+                navigator.vibrate(40); // 40ms vibration
+            }
+        }
+
+        /* =========================================
+           1. PETALS CANVAS ENGINE (Continuous Flow)
+           ========================================= */
+        const canvas = document.getElementById('petals-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let petals = [];
+        let touchX = 0; // For wind effect via touch
+        
+        // Resize Handler
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Petal Class
+        class Petal {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height - height; // Start above screen
+                this.size = Math.random() * 15 + 10;
+                this.speedY = Math.random() * 1 + 0.5;
+                this.speedX = Math.random() * 2 - 1; // Drift
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = Math.random() * 2 - 1;
+                this.color = `hsla(${Math.random() * 30 + 30}, 80%, 60%, 0.8)`; // Gold/Orange hues
+            }
+
+            update(inputX) {
+                this.y += this.speedY;
+                // Add wind effect based on inputX (mouse or touch) relative to center
+                let wind = inputX ? (inputX - width/2) * 0.002 : 0;
+                this.x += this.speedX + wind;
+                this.rotation += this.rotationSpeed;
+
+                // Reset if out of bounds
+                if (this.y > height) {
+                    this.y = -20;
+                    this.x = Math.random() * width;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation * Math.PI / 180);
+                
+                // Draw Petal Shape
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(this.size/2, -this.size/2, this.size, 0, 0, this.size);
+                ctx.bezierCurveTo(-this.size, 0, -this.size/2, -this.size/2, 0, 0);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+
+        // Initialize Petals - Reduce count for mobile performance
+        const particleCount = window.innerWidth < 600 ? 30 : 60;
+        for (let i = 0; i < particleCount; i++) petals.push(new Petal());
+
+        let inputX = 0;
+        document.addEventListener('mousemove', e => inputX = e.clientX);
+        document.addEventListener('touchmove', e => inputX = e.touches[0].clientX); // Wind on touch
+
+        function animatePetals() {
+            ctx.clearRect(0, 0, width, height);
+            petals.forEach(p => {
+                p.update(inputX);
+                p.draw();
+            });
+            requestAnimationFrame(animatePetals);
+        }
+        animatePetals(); // Start immediately
+
+        /* =========================================
+           2. INTERACTION LOGIC
+           ========================================= */
+        function openWedding() {
+            vibrateDevice();
+
+            // 1. Gate Animation
+            document.getElementById('gate-left').classList.add('gate-open-left');
+            document.getElementById('gate-right').classList.add('gate-open-right');
+            
+            // 2. Hide Seal
+            const seal = document.querySelector('.seal-container');
+            seal.style.opacity = '0';
+            seal.style.pointerEvents = 'none';
+
+            // 3. Music Start
+            toggleMusic(true);
+
+            // 4. Show Card
+            document.getElementById('scene').style.opacity = '1';
+
+            // 5. Remove Overlay Layer after anim
+            setTimeout(() => {
+                document.getElementById('gate-overlay').style.pointerEvents = 'none';
+            }, 1500);
+        }
+
+        /* =========================================
+           3. AUDIO LOGIC
+           ========================================= */
+        const audio = document.getElementById('bg-music');
+        const btn = document.getElementById('music-btn');
+        let isPlaying = false;
+
+        function toggleMusic(forcePlay = false) {
+            // Mobile browsers often block playing audio unless directly triggered by user event.
+            // openWedding calls this on click, which is good.
+            if (forcePlay || !isPlaying) {
+                audio.volume = 0.5; 
+                var playPromise = audio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        isPlaying = true;
+                        btn.classList.add('music-playing');
+                        btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    })
+                    .catch(error => {
+                        console.log("Audio autoplay prevented by browser. User must interact.", error);
+                    });
+                }
+            } else {
+                audio.pause();
+                isPlaying = false;
+                btn.classList.remove('music-playing');
+                btn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+            }
+        }
+
+        /* =========================================
+           4. GALLERY SLIDER LOGIC (With SWIPE)
+           ========================================= */
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.gallery-slide');
+        const dots = document.querySelectorAll('.dot');
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        function setSlide(index) {
+            // Reset
+            slides.forEach(s => s.classList.remove('active'));
+            dots.forEach(d => d.classList.remove('active'));
+            
+            // Set
+            currentSlide = index;
+            if (currentSlide < 0) currentSlide = slides.length - 1;
+            if (currentSlide >= slides.length) currentSlide = 0;
+
+            slides[currentSlide].classList.add('active');
+            dots[currentSlide].classList.add('active');
+        }
+
+        // SWIPE DETECTION
+        const gallery = document.getElementById('gallery-touch-area');
+        
+        gallery.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, {passive: true});
+
+        gallery.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, {passive: true});
+
+        function handleSwipe() {
+            if (touchStartX - touchEndX > 50) {
+                // Swiped Left -> Next
+                setSlide(currentSlide + 1);
+            }
+            if (touchEndX - touchStartX > 50) {
+                // Swiped Right -> Prev
+                setSlide(currentSlide - 1);
+            }
+        }
+
+        // Auto slide
+        setInterval(() => {
+            setSlide(currentSlide + 1);
+        }, 5000); // Slower interval
+
+        /* =========================================
+           5. 3D TILT LOGIC (Desktop & Touch Drag)
+           ========================================= */
+        const cardBody = document.getElementById('card-body');
+        
+        function handleTilt(xInput, yInput) {
+             // Lower sensitivity for smoother effect
+            const x = (window.innerWidth / 2 - xInput) / 30;
+            const y = (window.innerHeight / 2 - yInput) / 30;
+            cardBody.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
+        }
+
+        // Mouse Tilt
+        document.addEventListener('mousemove', (e) => {
+            if (window.innerWidth < 768) return; // Skip mouse logic on mobile widths if inconsistent
+            handleTilt(e.pageX, e.pageY);
+        });
+
+        // Touch Tilt (Drag)
+        document.addEventListener('touchmove', (e) => {
+             // Only apply tilt if not scrolling inner content excessively
+            const touch = e.touches[0];
+            handleTilt(touch.pageX, touch.pageY);
+        }, {passive: true});
+
+    </script>
+</body>
+</html>
